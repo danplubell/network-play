@@ -1,11 +1,8 @@
 module Main where
-{-
-This version is a very, very minimal implementtion
-It handles one connection at a time
--}
+{-Simple version that uses System.IO-}
 
 import           Network.Socket
-
+import           System.IO
 main :: IO ()
 main = do
   --create a socket
@@ -30,12 +27,11 @@ mainLoop sock = do
          -- accept one connection and handle it
          conn <- accept sock
          runConn conn
-         mainLoop sock  -- go back and do it again-}
+         mainLoop sock  -- go back and do it again
 
-
--- this version is a simple send using Network.Socket
-runConn :: (Socket, SockAddr) -> IO ()
+runConn:: (Socket,SockAddr)->IO ()
 runConn (sock, _) = do
-    _ <- send sock "Hi!\n" -- send something simple
-    sClose sock -- close the socket
-
+            hdl <- socketToHandle sock ReadWriteMode
+            hSetBuffering hdl NoBuffering
+            hPutStrLn hdl "Hi!"
+            hClose hdl
