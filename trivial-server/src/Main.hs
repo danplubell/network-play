@@ -1,6 +1,7 @@
 module Main where
 {-Simple version that uses System.IO-}
-
+{-Add concurrency to main loop-}
+import           Control.Concurrent
 import           Network.Socket
 import           System.IO
 main :: IO ()
@@ -21,14 +22,11 @@ main = do
   mainLoop sock
 
 
---this version of mainLoop handles one connection at a time
-mainLoop :: Socket -> IO ()
 mainLoop sock = do
-         -- accept one connection and handle it
-         conn <- accept sock
-         runConn conn
-         mainLoop sock  -- go back and do it again
-
+    conn <- accept sock
+    _ <- forkIO (runConn sock)
+    mainLoop sock
+    undefined
 runConn:: (Socket,SockAddr)->IO ()
 runConn (sock, _) = do
             hdl <- socketToHandle sock ReadWriteMode
