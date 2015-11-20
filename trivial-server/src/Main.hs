@@ -47,6 +47,7 @@ main = do
 mainLoop::Socket -> Chan Msg -> Int-> IO ()
 mainLoop sock chan nr = do
     conn <- accept sock
+    putStrLn $ "New connection: " ++ show conn
     _ <- forkIO (runConn conn chan nr)
     mainLoop sock chan $! nr+1
 
@@ -61,7 +62,8 @@ runConn (sock, _) chan nr = do
             hdl <- socketToHandle sock ReadWriteMode
             hSetBuffering hdl NoBuffering
             hPutStrLn hdl "Hi, what's your name?"
-            name <- liftM init (hGetLine hdl) -- everything but the last newline character, lift init into IO
+            name <- hGetLine hdl
+            putStrLn $ "New Connection: " ++ show nr ++ " Name: " ++ name
             broadcast ("--> " ++ name ++ " entered.")
             hPutStrLn hdl ("Welcome, " ++ name ++ "!")
             --duplicated channel
@@ -78,12 +80,13 @@ runConn (sock, _) chan nr = do
             -- handle an exception or quit when the user enters "quit"
             handle (\(SomeException _)-> return ()) $ fix $ \loop -> do
 
-                line <- liftM init (hGetLine hdl)
+                line <- hGetLine hdl
                 case line of
                    "quit" -> hPutStrLn hdl "Bye!"
                    _      -> do
                             broadcast (name ++ ": " ++ line)
                             loop
+            putStrLn $ "Killing thread: " ++ show reader
             killThread reader
             broadcast ("<-- " ++ name ++ " left.")
             hClose hdl
