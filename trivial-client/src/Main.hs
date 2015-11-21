@@ -19,9 +19,9 @@ main = do
   --set up addrInfo
   --
   let addrInfo = defaultHints { addrFlags = [AI_V4MAPPED] -- if not IPv6 then return IPv4 mapped to IPV6
-                              , addrFamily = AF_INET6 -- try IPv6
-                              , addrSocketType = Stream -- Out choice in this case is streaming
-                              , addrProtocol = protocol -- use the desired protocol
+                              , addrFamily = AF_INET6     -- try IPv6
+                              , addrSocketType = Stream   -- Out choice in this case is streaming
+                              , addrProtocol = protocol   -- use the desired protocol
                               }
 
 
