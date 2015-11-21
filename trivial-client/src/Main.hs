@@ -5,8 +5,10 @@ Trivial client that uses a hardcoded ip address and port
 This version does synchronous send and receive
 -}
 
+import           Control.Exception
 import           Network.BSD
 import           Network.Socket
+
 main :: IO ()
 main = do
   --create socket
@@ -29,16 +31,12 @@ main = do
   --get address info.  Used to resolve hostname to HostAddress
   --getAddrInfo Maybe AddrInfo Maybe HostName Maybe ServiceName -> IO [AddrInfo]
   --this could fail if the host doesn't exist or something else happens. We'll add exception handing later
-  (addr:_)<- getAddrInfo (Just addrInfo) (Just "www.aqualatus.com") Nothing
+  (addr:_)<- getAddrInfo (Just addrInfo) (Just "www.aqualatus.com") (Just "80")
   putStrLn $ "Got Address: " ++ show addr
   --create connection
-  --need to create a sockaddr
-
-  let newaddr (SockAddrInet6 _ f h s) = SockAddrInet6 80 f h s
-      newaddr _                       = undefined -- we'll deal with this later
 
   --connect::Socket -> SockAddr -> IO()
-  conn <- connect sock (newaddr (addrAddress addr))
+  conn <- connect sock (addrAddress addr)
   putStrLn $ "Create Connection: " ++ show conn
 
   close sock
