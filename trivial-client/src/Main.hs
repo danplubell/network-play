@@ -17,12 +17,16 @@ main = do
                                 , addrSocketType = Stream   -- Our choice in this case is streaming
                                 , addrProtocol = protocol   -- use the desired protocol
                                 }
-    bracket (socket AF_INET6 Stream protocol)
-            (\sock -> shutdown sock ShutdownBoth >> do putStrLn "Closing socket"; close sock)
-            (\sock -> do
-               (addr:_)<- getAddrInfo (Just addrInfo) (Just "www.aqualatus.com") (Just "80")
-               connect sock (addrAddress addr)
-               mainLoop sock
-            )
+    handle handleIt $ bracket (socket AF_INET6 Stream protocol)
+                              (\sock -> shutdown sock ShutdownBoth >> do putStrLn "Closing socket"; close sock)
+                              (\sock -> do
+                                 (addr:_)<- getAddrInfo (Just addrInfo) (Just "www.aqualatus.com") (Just "80")
+                                 connect sock (addrAddress addr)
+                                 mainLoop sock
+                              )
 mainLoop :: Socket -> IO ()
-mainLoop sock = undefined
+mainLoop sock = do putStrLn $ "Do something with this socket, then thow exception: " ++ show sock
+                   throwIO Overflow
+
+handleIt::SomeException -> IO ()
+handleIt e = putStrLn $  "An exception was thrown: " ++ show e
