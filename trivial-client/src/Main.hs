@@ -5,13 +5,13 @@ Trivial client that uses a hardcoded ip address and port
 This version brackets the acquire, execute, release cycle
 -}
 
+import           Control.Concurrent
 import           Control.Exception
 import           Control.Monad.Fix
 import qualified Data.ByteString.Char8     as BS
 import           Network.BSD
 import           Network.Socket
 import qualified Network.Socket.ByteString as NB
-import Control.Concurrent
 main :: IO ()
 main = do
     protocol <- getProtocolNumber "TCP"
@@ -29,9 +29,12 @@ main = do
                               )
 runRecv::Socket -> IO ()
 runRecv sock = do
-        reader <- forkIO $ \loop -> do
-                                line <- NB.recv sock 1024
-                                putStrLn $ BS.unpack line
+        reader <- forkIO $ fix $ \loop -> do
+                                      putStrLn "ready to receive"
+                                      line <- NB.recv sock 1024
+                                      putStrLn $ BS.unpack line
+                                      loop
+        return ()
 mainLoop :: Socket -> IO ()
 mainLoop sock = do putStrLn "Start mainLoop"
                    fix $ \loop -> do
