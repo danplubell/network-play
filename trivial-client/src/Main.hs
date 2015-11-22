@@ -12,6 +12,7 @@ import qualified Data.ByteString.Char8     as BS
 import           Network.BSD
 import           Network.Socket
 import qualified Network.Socket.ByteString as NB
+import           System.IO
 main :: IO ()
 main = do
     protocol <- getProtocolNumber "TCP"
@@ -23,26 +24,33 @@ main = do
     handle handleIt $ bracket (socket AF_INET6 Stream protocol)
                               (\sock -> shutdown sock ShutdownBoth >> do putStrLn "Closing socket"; close sock)
                               (\sock -> do
-                                 (addr:_)<- getAddrInfo (Just addrInfo) (Just "www.aqualatus.com") (Just "80")
+                                 (addr:_)<- getAddrInfo (Just addrInfo) (Just "127.0.0.1") (Just "4242")
                                  connect sock (addrAddress addr)
-                                 mainLoop sock
+                                 hdl <- socketToHandle sock ReadWriteMode
+                                 hSetBuffering hdl NoBuffering
+                                 putStrLn "runRecv"
+                                 runRecv hdl
+                                 putStrLn "start main loop"
+                                 mainLoop hdl
                               )
-runRecv::Socket -> IO ()
-runRecv sock = do
+runRecv::Handle -> IO ()
+runRecv hdl = do
         reader <- forkIO $ fix $ \loop -> do
                                       putStrLn "ready to receive"
-                                      line <- NB.recv sock 1024
-                                      putStrLn $ BS.unpack line
+                                      line <- hGetLine hdl
+                                      putStrLn line
                                       loop
         return ()
-mainLoop :: Socket -> IO ()
-mainLoop sock = do putStrLn "Start mainLoop"
-                   fix $ \loop -> do
-                              line <- getLine
-                              case line of
-                                  "quit" -> return ()
-                                  _      -> do _ <- NB.send sock (BS.pack line)
-                                               loop
+mainLoop :: Handle -> IO ()
+mainLoop hdl = do putStrLn "Start mainLoop"
+                  fix $ \loop -> do
+                             line <- getLine
+                             case line of
+                                 "quit" -> return ()
+                                 _      -> do
+                                             hPutStrLn hdl line
+                                             putStrLn $ "Sent: " ++ line
+                                             loop
 
 handleIt::SomeException -> IO ()
 handleIt e = putStrLn $  "An exception was thrown: " ++ show e
