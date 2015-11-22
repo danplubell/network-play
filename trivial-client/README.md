@@ -12,3 +12,10 @@ So, now it's a good opportunity to use the Control.Exception.Handle function to 
 do something with the exception...  In this case display a message and then die.
 
 This branch now includes the ability to read and write...  
+
+The socket is converted to a handle
+
+A receive loop is created
+
+The user entry is done on the main thread
+
