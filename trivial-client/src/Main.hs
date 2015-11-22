@@ -21,17 +21,21 @@ main = do
                                 , addrSocketType = Stream   -- Our choice in this case is streaming
                                 , addrProtocol = protocol   -- use the desired protocol
                                 }
-    handle handleIt $ bracket (socket AF_INET6 Stream protocol)
-                              (\sock -> shutdown sock ShutdownBoth >> do putStrLn "Closing socket"; close sock)
-                              (\sock -> do
+    handle handleIt $ bracket (do
+                                 sock <-socket AF_INET6 Stream protocol
                                  (addr:_)<- getAddrInfo (Just addrInfo) (Just "127.0.0.1") (Just "4242")
                                  connect sock (addrAddress addr)
-                                 hdl <- socketToHandle sock ReadWriteMode
+                                 hdl <-socketToHandle sock ReadWriteMode
                                  hSetBuffering hdl NoBuffering
-                                 putStrLn "runRecv"
-                                 runRecv hdl
-                                 putStrLn "start main loop"
-                                 mainLoop hdl
+                                 return hdl
+                              )
+
+                              (\hdl -> do putStrLn "Closing handle"; hClose hdl)
+                              (\hdl -> do
+                                putStrLn "runRecv"
+                                runRecv hdl
+                                putStrLn "start main loop"
+                                mainLoop hdl
                               )
 runRecv::Handle -> IO ()
 runRecv hdl = do
