@@ -8,8 +8,10 @@ Switch to using bytestrings instead of System.IO
 
 import           Control.Concurrent
 import           Control.Exception
+import           Control.Monad
 import           Control.Monad.Fix
 import qualified Data.ByteString.Char8     as BS
+import           Data.Typeable
 import           Network.BSD
 import           Network.Socket
 import qualified Network.Socket.ByteString as NB
@@ -27,28 +29,27 @@ main = do
                                  connect sock (addrAddress addr)
                                  return sock
                               )
-
-                              (\sock -> shutdown sock ShutdownBoth >> close sock)
+                               close
                               (\sock -> do
                                 reader <- runRecv sock
                                 mainLoop sock
+                                shutdown sock ShutdownBoth
                                 killThread reader
                               )
 runRecv::Socket -> IO ThreadId
 runRecv sock =
     forkIO $ fix $ \loop -> do
         line <- NB.recv sock 1024
-        putStrLn $ BS.unpack line
-        loop
+        unless  (BS.null line) (do putStrLn $ BS.unpack line; loop)
+
 
 mainLoop :: Socket -> IO ()
 mainLoop sock = fix $ \loop -> do
      line <- getLine
-     case line of
-         "quit" -> return ()
-         _      -> do
-                     NB.sendAll sock ( BS.pack line)
-                     loop
+     unless (line == "quit") (do
+                                s <- NB.send sock (BS.pack line)
+                                putStrLn $ "Sent: " ++ show s
+                                loop)
 
 handleIt::SomeException -> IO ()
-handleIt e = putStrLn $  "An exception was thrown: " ++ show e
+handleIt (SomeException e)  = putStrLn $  "An exception was thrown: " ++ "Type: " ++ show (typeOf e) ++ " " ++  show e

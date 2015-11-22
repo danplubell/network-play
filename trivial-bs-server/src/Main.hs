@@ -83,11 +83,12 @@ runConn (sock, _) chan nr = do
             handle (\(SomeException _)-> return ()) $ fix $ \loop -> do
 
                 line <- NB.recv sock 1024
-                case line of
-                   "quit" -> NB.sendAll sock  (BS.pack "Bye!")
-                   _      -> do
-                            broadcast (BS.concat [name, ": ", line])
-                            loop
+                case BS.unpack line of
+                   "quit"  -> NB.sendAll sock  (BS.pack "Bye!")
+                   []      -> return () -- zero length tcp messages means client closed their side
+                   _       -> do
+                             broadcast (BS.concat [name, ": ", line])
+                             loop
             putStrLn $ "Killing thread: " ++ show reader
             killThread reader
             broadcast (BS.concat ["<-- ",  name ,  " left."])
