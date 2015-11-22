@@ -11,6 +11,7 @@ import qualified Data.ByteString.Char8     as BS
 import           Network.BSD
 import           Network.Socket
 import qualified Network.Socket.ByteString as NB
+import Control.Concurrent
 main :: IO ()
 main = do
     protocol <- getProtocolNumber "TCP"
@@ -26,6 +27,11 @@ main = do
                                  connect sock (addrAddress addr)
                                  mainLoop sock
                               )
+runRecv::Socket -> IO ()
+runRecv sock = do
+        reader <- forkIO $ \loop -> do
+                                line <- NB.recv sock 1024
+                                putStrLn $ BS.unpack line
 mainLoop :: Socket -> IO ()
 mainLoop sock = do putStrLn "Start mainLoop"
                    fix $ \loop -> do
