@@ -11,3 +11,4 @@ Control.Exception.Bracket will execute the release function and rethrow the exce
 So, now it's a good opportunity to use the Control.Exception.Handle function to catch the exceptions
 do something with the exception...  In this case display a message and then die.
 
+This branch now includes the ability to read and write...  

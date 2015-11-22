@@ -6,9 +6,11 @@ This version brackets the acquire, execute, release cycle
 -}
 
 import           Control.Exception
+import           Control.Monad.Fix
+import qualified Data.ByteString.Char8     as BS
 import           Network.BSD
 import           Network.Socket
-
+import qualified Network.Socket.ByteString as NB
 main :: IO ()
 main = do
     protocol <- getProtocolNumber "TCP"
@@ -25,8 +27,13 @@ main = do
                                  mainLoop sock
                               )
 mainLoop :: Socket -> IO ()
-mainLoop sock = do putStrLn $ "Do something with this socket, then thow exception: " ++ show sock
-                   throwIO Overflow
+mainLoop sock = do putStrLn "Start mainLoop"
+                   fix $ \loop -> do
+                              line <- getLine
+                              case line of
+                                  "quit" -> return ()
+                                  _      -> do _ <- NB.send sock (BS.pack line)
+                                               loop
 
 handleIt::SomeException -> IO ()
 handleIt e = putStrLn $  "An exception was thrown: " ++ show e
