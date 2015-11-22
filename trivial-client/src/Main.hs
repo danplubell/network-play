@@ -8,10 +8,8 @@ This version brackets the acquire, execute, release cycle
 import           Control.Concurrent
 import           Control.Exception
 import           Control.Monad.Fix
-import qualified Data.ByteString.Char8     as BS
 import           Network.BSD
 import           Network.Socket
-import qualified Network.Socket.ByteString as NB
 import           System.IO
 main :: IO ()
 main = do
@@ -30,31 +28,27 @@ main = do
                                  return hdl
                               )
 
-                              (\hdl -> do putStrLn "Closing handle"; hClose hdl)
+                              hClose
                               (\hdl -> do
-                                putStrLn "runRecv"
-                                runRecv hdl
-                                putStrLn "start main loop"
+                                reader <- runRecv hdl
                                 mainLoop hdl
+                                killThread reader
                               )
-runRecv::Handle -> IO ()
-runRecv hdl = do
-        reader <- forkIO $ fix $ \loop -> do
-                                      putStrLn "ready to receive"
-                                      line <- hGetLine hdl
-                                      putStrLn line
-                                      loop
-        return ()
+runRecv::Handle -> IO ThreadId
+runRecv hdl =
+    forkIO $ fix $ \loop -> do
+        line <- hGetLine hdl
+        putStrLn line
+        loop
+
 mainLoop :: Handle -> IO ()
-mainLoop hdl = do putStrLn "Start mainLoop"
-                  fix $ \loop -> do
-                             line <- getLine
-                             case line of
-                                 "quit" -> return ()
-                                 _      -> do
-                                             hPutStrLn hdl line
-                                             putStrLn $ "Sent: " ++ line
-                                             loop
+mainLoop hdl = fix $ \loop -> do
+     line <- getLine
+     case line of
+         "quit" -> return ()
+         _      -> do
+                     hPutStrLn hdl line
+                     loop
 
 handleIt::SomeException -> IO ()
 handleIt e = putStrLn $  "An exception was thrown: " ++ show e
