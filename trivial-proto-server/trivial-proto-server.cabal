@@ -21,3 +21,4 @@ executable trivial-proto-server
                      , bytestring
                      , trivial-protocol
                      , binary
+                     , stm

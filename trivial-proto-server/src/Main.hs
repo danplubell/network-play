@@ -4,17 +4,15 @@ module Main where
 {-Simple version that uses Bytestrings to send and receive messages
 -}
 import           Control.Concurrent
+import           Control.Concurrent.STM
 import           Control.Exception
 import           Control.Monad
-import           Control.Monad.Fix         (fix)
+import           Control.Monad.Fix      (fix)
 import           Data.Binary
-import qualified Data.ByteString.Char8     as BS
-import           GHC.Generics              (Generic)
+import qualified Data.ByteString.Char8  as BS
+import qualified Data.ByteString.Lazy   as BL
 import           Network.Socket
-import qualified Network.Socket.ByteString as NB
-
-data Msg = Msg Word Word BS.ByteString
-data  MsgPayload = MsgPayload Int BS.ByteString
+import           Protocol
 
 main :: IO ()
 main = do
@@ -22,7 +20,7 @@ main = do
   sock  <- socket AF_INET Stream 0
 
   --create a channel
-  chan <- newChan::IO (Chan Msg)
+  chan <- newChan::IO (Chan PayLoadMsg)
   --make socket immediately resuable
   setSocketOption sock ReuseAddr 1
 
@@ -38,7 +36,7 @@ main = do
          -- start main processing loop
   mainLoop sock chan 0
 
-mainLoop::Socket -> Chan Msg -> Int-> IO ()
+mainLoop::Socket -> Chan PayLoadMsg -> Int-> IO ()
 mainLoop sock chan nr = do
     conn <- accept sock
     putStrLn $ "New connection: " ++ show conn
@@ -50,38 +48,58 @@ mainLoop sock chan nr = do
 -- When a connection is made the user is asked for a name
 -- When an exception occurs the thread is killed
 -- When the user enter "quit" the thread is killed
-runConn:: (Socket,SockAddr)->Chan Msg ->Int ->IO ()
+runConn:: (Socket,SockAddr)->Chan PayLoadMsg ->Int ->IO ()
 runConn (sock, _) chan nr = do
-            let broadcast msg  = writeChan chan (nr,msg) --broadcast the message to the channel
-            NB.sendAll sock (BS.pack "Hi, what's your name?")
-            name <- NB.recv sock 1024
-            putStrLn $ "New Connection: " ++ show nr ++ " Name: " ++ BS.unpack name
-            broadcast (BS.concat ["--> ",name," entered."])
-            NB.sendAll sock (BS.concat ["Welcome, ", name, "!"])
-            --duplicated channel
-            -- new channel is empty
-            -- Writes to read from duplicated channels, but not removed from other channels
-            -- example of multicast
-            chan' <- dupChan chan
-            -- create reader thread, we'll kill it later
-            -- need thread id to kill it
-            reader <- forkIO $ fix $ \loop -> do -- read message, but not our own messages
-              (nr',line) <- readChan chan'
-              when (nr /= nr') $ NB.sendAll sock line
-              loop
-            -- handle an exception or quit when the user enters "quit"
-            handle (\(SomeException _)-> return ()) $ fix $ \loop -> do
+            queue <- newTQueueIO
+            --receiver thread reads from socket and writes to queue
+            receiver <- startReceiver sock queue
 
-                line <- NB.recv sock 1024
-                case BS.unpack line of
-                   "quit"  -> NB.sendAll sock  (BS.pack "Bye!")
-                   []      -> return () -- zero length tcp messages means client closed their side
-                   _       -> do
-                             broadcast (BS.concat [name, ": ", line])
-                             loop
-            putStrLn $ "Killing thread: " ++ show reader
-            killThread reader
-            broadcast (BS.concat ["<-- ",  name ,  " left."])
-            close sock
+
+            let broadcast msg  = writeChan chan (ChatMsg nr msg) --broadcast the message to the channel
+            sendMsg sock (mkMsg GreetReq (GreetMsg "Hi what's your name?"))
+            nameMsg <- recvMsgFromQueue queue
+            case toEnum (msgType nameMsg) of
+                GreetResp -> do
+                   let name = decode $ BL.fromStrict (msgBody nameMsg)
+
+                   putStrLn $ "New Connection: " ++ show nr ++ " Name: " ++ BS.unpack name
+                   broadcast (BS.concat ["--> ",name," entered."])
+                   sendMsg sock (mkMsg GreetReq (GreetMsg (BS.concat ["Welcome, ", name, "!"]) ))
+                   --duplicated channel
+                   -- new channel is empty
+                   -- Writes to read from duplicated channels, but not removed from other channels
+                   -- example of multicast
+                   chan' <- dupChan chan
+                   -- create reader thread, we'll kill it later
+                   -- need thread id to kill it
+                   reader' <- forkIO $ fix $ \loop -> do -- read message, but not our own messages
+                     chatMsg <- readChan chan'
+                     when (nr /= chtMsgId chatMsg) $ sendMsg sock (mkMsg Chat chatMsg)
+                     loop
+                  -- handle an exception or quit when the user enters "quit"
+                  -- This loop reads chat message from queue
+                   handle (\(SomeException _)-> return ()) $ fix $ \loop -> do
+
+                       chatMsg' <- recvMsgFromQueue queue
+                       case toEnum (msgType chatMsg') of
+                         Shutdown  -> putStrLn "received shutdown msg..."
+                         Chat      -> do
+                           let line = decode (BL.fromStrict $ msgBody chatMsg')
+                           case BS.unpack line of
+                              "quit"  -> sendMsg sock (mkMsg GreetReq (GreetMsg (BS.pack "Bye!")))
+                              []      -> return () -- zero length tcp messages means client closed their side
+                              _       -> do
+                                        broadcast (BS.concat [name, ": ", line])
+                                        loop
+                         msgT@_        -> putStrLn $ "Unexpected Chat Message Type (connection will die): "
+                                         ++ show msgT
+                   putStrLn $ "Killing thread: " ++ show reader'
+                   killThread reader'
+                   broadcast (BS.concat ["<-- ",  name ,  " left."])
+                msgT@_     -> putStrLn $  "Unexpected Greeting Message Type (Connection will die): " ++ show msgT
+
+            putStrLn $ "Killing receiver thread: " ++ show receiver
+            killThread receiver
+            close  sock
 
 
