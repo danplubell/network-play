@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 {-Simple version that uses Bytestrings to send and receive messages
@@ -59,44 +58,45 @@ runConn (sock, _) chan nr = do
             sendMsg sock (mkMsg GreetReq (GreetMsg "Hi what's your name?"))
             nameMsg <- recvMsgFromQueue queue
             case toEnum (msgType nameMsg) of
-                GreetResp -> do
-                   let name = decode $ BL.fromStrict (msgBody nameMsg)
+              GreetResp -> do
+                 let name = grtMsg (decode $ BL.fromStrict (msgBody nameMsg)::PayLoadMsg)
 
-                   putStrLn $ "New Connection: " ++ show nr ++ " Name: " ++ BS.unpack name
-                   broadcast (BS.concat ["--> ",name," entered."])
-                   sendMsg sock (mkMsg GreetReq (GreetMsg (BS.concat ["Welcome, ", name, "!"]) ))
-                   --duplicated channel
-                   -- new channel is empty
-                   -- Writes to read from duplicated channels, but not removed from other channels
-                   -- example of multicast
-                   chan' <- dupChan chan
-                   -- create reader thread, we'll kill it later
-                   -- need thread id to kill it
-                   reader' <- forkIO $ fix $ \loop -> do -- read message, but not our own messages
-                     chatMsg <- readChan chan'
-                     when (nr /= chtMsgId chatMsg) $ sendMsg sock (mkMsg Chat chatMsg)
-                     loop
-                  -- handle an exception or quit when the user enters "quit"
-                  -- This loop reads chat message from queue
-                   handle (\(SomeException _)-> return ()) $ fix $ \loop -> do
+                 putStrLn $ "New Connection: " ++ show nr ++ " Name: " ++ BS.unpack name
+                 broadcast (BS.concat ["--> ",name," entered."])
+                 sendMsg sock (mkMsg GreetReq (GreetMsg (BS.concat ["Welcome, ", name, "!"]) ))
+                 --duplicated channel
+                 -- new channel is empty
+                 -- Writes to read from duplicated channels, but not removed from other channels
+                 -- example of multicast
+                 chan' <- dupChan chan
+                 -- create reader thread, we'll kill it later
+                 -- need thread id to kill it
+                 reader' <- forkIO $ fix $ \loop -> do -- read message, but not our own messages
+                   chatMsg <- readChan chan'
+                   when (nr /= chtMsgId chatMsg) $ sendMsg sock (mkMsg Chat chatMsg)
+                   loop
+                -- handle an exception or quit when the user enters "quit"
+                -- This loop reads chat message from queue
+                 handle (\(SomeException _)-> return ()) $ fix $ \loop -> do
 
-                       chatMsg' <- recvMsgFromQueue queue
-                       case toEnum (msgType chatMsg') of
-                         Shutdown  -> putStrLn "received shutdown msg..."
-                         Chat      -> do
-                           let line = decode (BL.fromStrict $ msgBody chatMsg')
-                           case BS.unpack line of
-                              "quit"  -> sendMsg sock (mkMsg GreetReq (GreetMsg (BS.pack "Bye!")))
-                              []      -> return () -- zero length tcp messages means client closed their side
-                              _       -> do
-                                        broadcast (BS.concat [name, ": ", line])
-                                        loop
-                         msgT@_        -> putStrLn $ "Unexpected Chat Message Type (connection will die): "
-                                         ++ show msgT
-                   putStrLn $ "Killing thread: " ++ show reader'
-                   killThread reader'
-                   broadcast (BS.concat ["<-- ",  name ,  " left."])
-                msgT@_     -> putStrLn $  "Unexpected Greeting Message Type (Connection will die): " ++ show msgT
+                     chatMsg' <- recvMsgFromQueue queue
+                     case toEnum (msgType chatMsg') of
+                       Shutdown  -> putStrLn "received shutdown msg..."
+                       Chat      -> do
+                         let lineMsg = decode (BL.fromStrict $ msgBody chatMsg')::PayLoadMsg
+                         case BS.unpack (chtMsg lineMsg) of
+                            "quit"  -> sendMsg sock (mkMsg GreetReq (GreetMsg (BS.pack "Bye!")))
+                            []      -> return () -- zero length tcp messages means client closed their side
+                            _       -> do
+                                      broadcast (BS.concat [name, ": ", chtMsg lineMsg])
+                                      loop
+                       msgT@_        -> putStrLn $ "Unexpected Chat Message Type (connection will die): "
+                                       ++ show msgT
+
+                 putStrLn $ "Killing thread: " ++ show reader'
+                 killThread reader'
+                 broadcast (BS.concat ["<-- ",  name ,  " left."])
+              msgT@_     -> putStrLn $  "Unexpected Greeting Message Type (Connection will die): " ++ show msgT
 
             putStrLn $ "Killing receiver thread: " ++ show receiver
             killThread receiver

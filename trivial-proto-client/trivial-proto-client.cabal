@@ -20,3 +20,5 @@ executable trivial-proto-client
                      , trivial-protocol
                      , network
                      , bytestring
+                     , stm
+                     , binary
