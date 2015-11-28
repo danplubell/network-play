@@ -14,13 +14,13 @@ import           Data.Binary
 import qualified Data.ByteString.Char8  as BS
 import qualified Data.ByteString.Lazy   as BL
 import           Data.Typeable
-import           Data.Word
 import           Network.BSD
 import           Network.Socket
---import qualified Network.Socket.ByteString as NB
 import           Protocol
+import           System.Environment
 main :: IO ()
 main = do
+    (ipAddr:port:_) <- getArgs
     protocol <- getProtocolNumber "TCP"
     let addrInfo = defaultHints { addrFlags = [AI_V4MAPPED] -- if not IPv6 then return IPv4 mapped to IPV6
                                 , addrFamily = AF_INET6     -- try IPv6
@@ -29,7 +29,7 @@ main = do
                                 }
     handle handleIt $ bracket (do
                                  sock <-socket AF_INET6 Stream protocol
-                                 (addr:_)<- getAddrInfo (Just addrInfo) (Just "127.0.0.1") (Just "4242")
+                                 (addr:_)<- getAddrInfo (Just addrInfo) (Just ipAddr) (Just port)
                                  connect sock (addrAddress addr)
                                  return sock
                               )

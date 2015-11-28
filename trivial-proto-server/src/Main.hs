@@ -12,9 +12,12 @@ import qualified Data.ByteString.Char8  as BS
 import qualified Data.ByteString.Lazy   as BL
 import           Network.Socket
 import           Protocol
+import           System.Environment
 
 main :: IO ()
 main = do
+  (port:_) <- getArgs
+  let portNumber = read port::Int
   --create a socket
   sock  <- socket AF_INET Stream 0
 
@@ -24,7 +27,7 @@ main = do
   setSocketOption sock ReuseAddr 1
 
   -- listen on TCP port 4242
-  bindSocket sock (SockAddrInet 4242 iNADDR_ANY)
+  bindSocket sock (SockAddrInet (fromIntegral portNumber)  iNADDR_ANY)
 
   -- allow as maximum of 2 outstanding connections
   listen sock 2
