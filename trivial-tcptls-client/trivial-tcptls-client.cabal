@@ -1,8 +1,8 @@
-name:                trivial-simtcp-server
+name:                trivial-tcptls-client
 version:             0.1.0.0
 synopsis:            Simple project template from stack
 description:         Please see README.md
-homepage:            http://github.com/danplubell/trivial-simtcp-server#readme
+homepage:            http://github.com/danplubell/trivial-tcptls-client#readme
 license:             BSD3
 license-file:        LICENSE
 author:              Dan Plubell
@@ -12,14 +12,8 @@ category:            Other
 build-type:          Simple
 cabal-version:       >=1.10
 
-executable trivial-simtcp-server
+executable trivial-tcptls-client
   hs-source-dirs:      src
   main-is:             Main.hs
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
-                     , network-simple
-                     , trivial-simtcp-protocol
-                     , network
-                     , binary
-                     , bytestring
-                     , stm
