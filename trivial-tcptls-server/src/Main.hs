@@ -21,10 +21,10 @@ import           System.X509.MacOS
 main :: IO ()
 main = do
   -- set up the socket
-  (port: _ ) <- getArgs
+  (addr:port:crt:key:_ ) <- getArgs
   let portNumber = read port::Int
   sock <- socket AF_INET Stream 0
-  host <- getHostByName "127.0.0.1"
+  host <- getHostByName addr
 
 
   setSocketOption sock ReuseAddr 1
@@ -42,7 +42,9 @@ main = do
 
 
   --getCredentials from a PEM file
-  credeither <- credentialLoadX509 "/Users/cerdep/localhostserver.crt" "/Users/cerdep/localhostserver.key"
+  credeither <- credentialLoadX509 crt key
+--  credeither <- credentialLoadX509 "/Users/cerdep/localhostserver.crt" "/Users/cerdep/localhostserver.key"
+
 
   let cred (Right c) = c
       cred (Left s) = error $ "credential error: " ++ s
