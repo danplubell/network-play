@@ -8,21 +8,21 @@ packages:
 - network-client/
 - network-server/
 - tqueue-play/
-- trivial-bs-client/
-- trivial-bs-server/
-- trivial-client/
-- trivial-proto-client/
-- trivial-proto-server/
-- trivial-protocol/
-- trivial-server/
-- trivial-simtcp-client/
-- trivial-simtcp-protocol/
-- trivial-simtcp-server/
-- trivial-splitmsg-client/
-- trivial-splitmsg-server/
-- trivial-tcptls-client/
-- trivial-tcptls-protocol/
-- trivial-tcptls-server/
+- trivial/trivial-client/
+- trivial/trivial-server/
+- trivial-bs/trivial-bs-client/
+- trivial-bs/trivial-bs-server/
+- trivial-proto/trivial-proto-client/
+- trivial-proto/trivial-proto-server/
+- trivial-proto/trivial-protocol/
+- trivial-simtcp/trivial-simtcp-client/
+- trivial-simtcp/trivial-simtcp-protocol/
+- trivial-simtcp/trivial-simtcp-server/
+- trivial-splitmsg/trivial-splitmsg-client/
+- trivial-splitmsg/trivial-splitmsg-server/
+- trivial-tcptls/trivial-tcptls-client/
+- trivial-tcptls/trivial-tcptls-protocol/
+- trivial-tcptls/trivial-tcptls-server/
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps: []
