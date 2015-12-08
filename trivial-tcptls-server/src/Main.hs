@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 --import qualified Data.ByteString.Char8 as BS8
@@ -17,7 +18,14 @@ import           Network.TLS
 import           Network.TLS.Extra
 import           Protocol
 import           System.Environment
+#ifdef darwin_HOST_OS
 import           System.X509.MacOS
+#else
+#  ifdef linux_HOST_OS
+import           System.X509.Unix
+#  endif
+#endif
+
 main :: IO ()
 main = do
   -- set up the socket
