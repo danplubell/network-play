@@ -22,3 +22,8 @@ executable trivial-tcptls-server
                      , tls
                      , x509-system
                      , x509-store
+                     , stm
+                     , binary
+                     , bytestring
+                     , trivial-tcptls-protocol
+                     , x509-validation

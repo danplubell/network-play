@@ -12,8 +12,19 @@ category:            Other
 build-type:          Simple
 cabal-version:       >=1.10
 
-executable trivial-tcptls-protocol
+library 
   hs-source-dirs:      src
-  main-is:             Main.hs
+  exposed-modules:     Protocol
+                       X509
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
+                     , bytestring
+                     , network-simple
+                     , binary
+                     , network
+                     , tls
+                     , stm
+                     , x509
+                     , x509-store
+                     , pem
+                     , process
