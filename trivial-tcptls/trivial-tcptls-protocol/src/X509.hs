@@ -9,6 +9,9 @@ import           System.Process
 import           Data.X509
 import           Data.X509.CertificateStore
 
+-- The certificates that I used for testing were not in the keychains assumed to be used in MacOS
+-- System.X509.CertificateStore assumes that there are only checks two specific locations.
+-- A hacked up version that will load the list of known keychains instead of a predefined list
 getKeyChains:: IO [FilePath]
 getKeyChains = do
     (_, Just hout, _, ph) <- createProcess (proc "security" [ "list-keychains"]) {std_out = CreatePipe}
