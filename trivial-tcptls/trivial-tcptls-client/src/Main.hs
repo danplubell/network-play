@@ -57,12 +57,12 @@ main = do
                                 receiver <- startReceiver ctx queue
                                 msgRecv <- recvMsgFromQueue queue
                                 case toEnum ( msgType msgRecv) of
-                                  Chat -> print $ chtMsg (decodeMsgBody msgRecv)
+                                  Chat -> (dispPayLoadMsg.decodeMsgBody) msgRecv
                                   GreetReq -> do
-                                    print $ grtMsg (decodeMsgBody msgRecv)
+                                    (dispPayLoadMsg.decodeMsgBody) msgRecv
                                     name <- TIO.getLine
                                     sendMsg ctx (mkMsg GreetResp (GreetMsg (TEN.encodeUtf8 name)))
-                                  GreetResp -> print $ grtMsg (decodeMsgBody msgRecv)
+                                  GreetResp -> (dispPayLoadMsg.decodeMsgBody) msgRecv
                                   Shutdown -> putStrLn "Received Shutdown"
                                 reader <- runReader queue
                                 mainLoop ctx
@@ -75,17 +75,18 @@ runReader queue =
     forkIO $ fix $ \loop -> do
        msgRecv <- recvMsgFromQueue queue
        case toEnum ( msgType msgRecv) of
-         Chat -> print $ chtMsg (decodeMsgBody msgRecv)
-         GreetReq -> print $ grtMsg (decodeMsgBody msgRecv)
-
-         GreetResp -> print $ grtMsg (decodeMsgBody msgRecv)
          Shutdown -> putStrLn "Received Shutdown"
+         _        -> (dispPayLoadMsg.decodeMsgBody) msgRecv
        loop
 
 decodeMsgBody::Msg -> PayLoadMsg
 decodeMsgBody msgRecv = decode $ msgBody msgRecv
 
-
+dispPayLoadMsg::PayLoadMsg -> IO ()
+dispPayLoadMsg msg =
+  case msg of
+    ChatMsg _ chtmsg  -> TIO.putStrLn $ TEN.decodeUtf8 chtmsg
+    GreetMsg grtmsg   -> TIO.putStrLn $ TEN.decodeUtf8 grtmsg
 mainLoop :: Context -> IO ()
 mainLoop ctx = fix $ \loop -> do
      line <- TIO.getLine
