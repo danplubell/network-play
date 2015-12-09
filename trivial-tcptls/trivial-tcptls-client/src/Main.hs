@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings, CPP #-}
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
 {-
@@ -14,6 +15,8 @@ import           Control.Monad.Fix
 import           Data.Binary
 import qualified Data.ByteString.Char8      as BS
 import           Data.Default.Class
+import qualified Data.Text.Encoding         as TEN
+import qualified Data.Text.IO               as TIO
 import           Data.Typeable
 import           Data.X509.CertificateStore
 import           Network.BSD
@@ -22,14 +25,10 @@ import           Network.TLS
 import           Network.TLS.Extra
 import           Protocol
 import           System.Environment
-import qualified Data.Text.IO as TIO
-import qualified Data.Text.Encoding as TEN
 #ifdef darwin_HOST_OS
 import           X509
- #else
-#  ifdef linux_HOST_OS
+#else
 import           System.X509.Linux
-#  endif
 #endif
 main :: IO ()
 main = do
