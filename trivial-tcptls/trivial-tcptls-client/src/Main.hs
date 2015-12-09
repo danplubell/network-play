@@ -28,7 +28,7 @@ import           System.Environment
 #ifdef darwin_HOST_OS
 import           X509
 #else
-import           System.X509.Linux
+import           System.X509.Unix
 #endif
 main :: IO ()
 main = do
