@@ -26,4 +26,5 @@ executable trivial-tcptls-client
                      , data-default-class
                      , network
                      , binary
+                     , text
                      

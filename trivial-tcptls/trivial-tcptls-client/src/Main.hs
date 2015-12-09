@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE OverloadedStrings, CPP #-}
 module Main where
 
 {-
@@ -22,14 +22,15 @@ import           Network.TLS
 import           Network.TLS.Extra
 import           Protocol
 import           System.Environment
+import qualified Data.Text.IO as TIO
+import qualified Data.Text.Encoding as TEN
+#ifdef darwin_HOST_OS
 import           X509
--- #ifdef darwin_HOST_OS
---import           System.X509.MacOS
--- #else
--- #  ifdef linux_HOST_OS
---import           System.X509.Linux
--- #  endif
--- #endif
+ #else
+#  ifdef linux_HOST_OS
+import           System.X509.Linux
+#  endif
+#endif
 main :: IO ()
 main = do
     (ipAddr:port:_) <- getArgs
@@ -60,10 +61,10 @@ main = do
                                   Chat -> print $ chtMsg (decodeMsgBody msgRecv)
                                   GreetReq -> do
                                     print $ grtMsg (decodeMsgBody msgRecv)
-                                    name <- getLine
-                                    sendMsg ctx (mkMsg GreetResp (GreetMsg (BS.pack name)))
+                                    name <- TIO.getLine
+                                    sendMsg ctx (mkMsg GreetResp (GreetMsg (TEN.encodeUtf8 name)))
                                   GreetResp -> print $ grtMsg (decodeMsgBody msgRecv)
-                                  Shutdown -> print "Received Shutdown"
+                                  Shutdown -> putStrLn "Received Shutdown"
                                 reader <- runReader queue
                                 mainLoop ctx
 
@@ -79,7 +80,7 @@ runReader queue =
          GreetReq -> print $ grtMsg (decodeMsgBody msgRecv)
 
          GreetResp -> print $ grtMsg (decodeMsgBody msgRecv)
-         Shutdown -> print "Received Shutdown"
+         Shutdown -> putStrLn "Received Shutdown"
        loop
 
 decodeMsgBody::Msg -> PayLoadMsg
@@ -88,9 +89,9 @@ decodeMsgBody msgRecv = decode $ msgBody msgRecv
 
 mainLoop :: Context -> IO ()
 mainLoop ctx = fix $ \loop -> do
-     line <- getLine
+     line <- TIO.getLine
      unless (line == "quit") (do
-                               sendMsg ctx (mkMsg Chat (ChatMsg 0 (BS.pack line)))
+                               sendMsg ctx (mkMsg Chat (ChatMsg 0 (TEN.encodeUtf8 line)))
                                loop)
 
 handleIt::SomeException -> IO ()
@@ -101,7 +102,6 @@ getDefaultParams host store =
   (defaultParamsClient host BS.empty )
   { clientSupported = def {supportedCiphers=ciphersuite_all}
   , clientShared = def { sharedCAStore = store
-                       , sharedValidationCache = def --ValidationCache (\_ _ _ -> return ValidationCachePass)
-                                                 --                  (\_ _ _ -> return ())
+                       , sharedValidationCache = def
                        }
   }

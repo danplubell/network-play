@@ -27,3 +27,4 @@ executable trivial-tcptls-server
                      , bytestring
                      , trivial-tcptls-protocol
                      , x509-validation
+                     , text
